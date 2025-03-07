@@ -1,8 +1,9 @@
 import {
 	insertIntoDirectoryDownloadedVideo,
-	moveAllDownloadeFilesToRootDirectory,
+	moveAllDownloadedFilesToRootDirectory,
 } from './static/console/command/command.ts'
 import { rl, showAllCommands } from './static/variables/variables.ts'
+import process from 'process'
 
 async function main(): Promise<void> {
 	console.log(showAllCommands)
@@ -11,11 +12,14 @@ async function main(): Promise<void> {
 		const userCommand = line.trim()
 
 		if (userCommand === 'exit') process.exit(0)
-		if (userCommand === '-help') console.log(showAllCommands)
+		if (userCommand === 'help') {
+			console.log(showAllCommands)
+			continue
+		}
 
 		if (userCommand.startsWith('-d'))
 			await insertIntoDirectoryDownloadedVideo(userCommand)
-		else await moveAllDownloadeFilesToRootDirectory(userCommand)
+		else await moveAllDownloadedFilesToRootDirectory(userCommand)
 	}
 }
 

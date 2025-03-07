@@ -1,5 +1,6 @@
 import fs from 'fs/promises'
 import path from 'path'
+import { pathToDirectory } from '../static/variables/variables.ts'
 
 export async function createNewDirectory(directory: string): Promise<string> {
 	const isDirectoryExists = await tryToAccessDirectoryOrFile(directory)
@@ -14,39 +15,58 @@ export async function createNewDirectory(directory: string): Promise<string> {
 }
 
 export const createDirectoryAndMovesDownloadedFiles = async (
-	youtubeVideo: [string, string, string],
-	pathToDirectory: string
+	youtubeVideo: [string, string, string] | string
 ) => {
-	const outputPath = youtubeVideo[0]
-	const videoMetadataJSONFile = youtubeVideo[1]
-	const videoTitle = youtubeVideo[2]
+	if (
+		Array.isArray(youtubeVideo) &&
+		youtubeVideo.every(item => typeof item === 'string')
+	) {
+		const outputPath = youtubeVideo[0]
+		const videoMetadataJSONFile = youtubeVideo[1]
+		const videoTitle = youtubeVideo[2]
 
-	const newDirectory = await createNewDirectory(
-		path.resolve(pathToDirectory, videoTitle)
-	)
-	await moveFilesToDirectory(newDirectory, [outputPath, videoMetadataJSONFile])
+		const newDirectory = await createNewDirectory(
+			path.resolve(pathToDirectory, videoTitle)
+		)
+
+		await moveFilesToDirectory(newDirectory, [
+			outputPath,
+			videoMetadataJSONFile,
+		])
+	} else if (typeof youtubeVideo === 'string') {
+		const newDirectory = await createNewDirectory(
+			path.resolve(pathToDirectory, `${youtubeVideo}_video`)
+		)
+		await moveFilesToDirectory(newDirectory, youtubeVideo)
+	}
 }
 
 export const moveFilesToDirectory = async (
 	directory: string,
-	files: string[]
+	files: string[] | string
 ) => {
-	try {
-		console.log(
-			'moveFilesToDirectory:\n',
-			'directory -> ',
-			directory,
-			'files -> ',
-			files
-		)
+	if (Array.isArray(files) && files.every(file => typeof file === 'string')) {
+		try {
+			console.log(
+				'moveFilesToDirectory:\n',
+				'directory -> ',
+				directory,
+				'files -> ',
+				files
+			)
 
-		files.forEach(async file => {
-			const fileName = path.basename(file)
-			const newPath = path.join(directory, fileName)
-			await fs.rename(file, newPath)
-		})
-	} catch (err) {
-		console.error('[moveFileToDirectory] ERROR: ', err)
+			files.forEach(async file => {
+				const fileName = path.basename(file)
+				const newPath = path.join(directory, fileName)
+				await fs.rename(file, newPath)
+			})
+		} catch (err) {
+			console.error('[moveFileToDirectory] ERROR: ', err)
+		}
+	} else if (typeof files === 'string') {
+		const fileName = path.basename(files)
+		const newPath = path.join(directory, fileName)
+		await fs.rename(files, newPath)
 	}
 }
 

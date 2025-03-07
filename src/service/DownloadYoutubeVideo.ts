@@ -1,52 +1,81 @@
 import { spawn } from 'child_process'
+import type { ChildProcessWithoutNullStreams } from 'child_process'
 import { createUniqueMetadataJSONFile } from './FileSystemService.ts'
 
 export async function downloadYouTubeVideo(
 	videoUrl: string,
-	outputDir: string
-): Promise<[string, string, string] | undefined> {
-	const youtubeVideoMetadata = await getYouTubeVideoMetadata(videoUrl)
-	if (youtubeVideoMetadata) {
-		const youtubeVideoTitle = youtubeVideoMetadata.title
+	outputDir: string,
+	downloadVideoMetadata?: boolean
+): Promise<[string, string, string] | string> {
+	if (downloadVideoMetadata) {
+		const youtubeVideoMetadata = await getYouTubeVideoMetadata(videoUrl)
 
-		const uniqueMetadataJSONFile = await createUniqueMetadataJSONFile(
-			outputDir,
-			youtubeVideoTitle,
-			youtubeVideoMetadata
-		)
+		if (youtubeVideoMetadata) {
+			const youtubeVideoTitle = youtubeVideoMetadata.title
 
-		const outputPath = await downloadProcess(
-			outputDir,
-			videoUrl,
-			youtubeVideoMetadata
-		)
+			const uniqueMetadataJSONFile = await createUniqueMetadataJSONFile(
+				outputDir,
+				youtubeVideoTitle,
+				youtubeVideoMetadata
+			)
 
-		return [outputPath, uniqueMetadataJSONFile, youtubeVideoTitle]
-	} else return
+			const outputPath = await downloadProcess(
+				outputDir,
+				videoUrl,
+				youtubeVideoMetadata
+			)
+			return [outputPath, uniqueMetadataJSONFile, youtubeVideoTitle]
+		} else return ''
+	}
+	return await downloadProcess(outputDir, videoUrl)
 }
 
 const downloadProcess = async (
 	outputDir: string,
 	videoUrl: string,
-	youtubeVideoMetadata: any
+	youtubeVideoMetadata?: any
 ): Promise<string> => {
-	const outputPath = `${outputDir}/${youtubeVideoMetadata.title}.webm`
-	const ytDlpProcess = spawn('yt-dlp', ['-o', outputPath, videoUrl])
+	let outputPath: string
+	let ytDlpProcess: ChildProcessWithoutNullStreams
 
-	ytDlpProcess.stdout.on('data', data => console.log(`📥 Загрузка: ${data}`))
-	ytDlpProcess.stderr.on('data', data => console.error(`⚠️ Ошибка: ${data}`))
+	if (youtubeVideoMetadata) {
+		outputPath = `${outputDir}/music${youtubeVideoMetadata.title}.webm`
+		ytDlpProcess = spawn('yt-dlp', ['-o', outputPath, videoUrl])
 
-	await new Promise<void>((resolve, reject) => {
-		ytDlpProcess.on('close', code => {
-			if (code === 0) {
-				console.log(`✅ Видео сохранено в ${outputPath}`)
-				console.log('Можно отправлять новую ссылку ^_^')
-				resolve()
-			} else reject(`❌ yt-dlp завершился с кодом ${code}`)
+		ytDlpProcess.stdout.on('data', data => console.log(`📥 Загрузка: ${data}`))
+		ytDlpProcess.stderr.on('data', data => console.error(`⚠️ Ошибка: ${data}`))
+
+		await new Promise<void>((resolve, reject) => {
+			ytDlpProcess.on('close', code => {
+				if (code === 0) {
+					console.log(`✅ Видео сохранено в ${outputPath}`)
+					console.log('Можно отправлять новую ссылку ^_^')
+					resolve()
+				} else reject(`❌ yt-dlp завершился с кодом ${code}`)
+			})
 		})
-	})
 
-	return outputPath
+		return outputPath
+	} else {
+		outputPath = `${outputDir}/music${(Math.random() + 1) * 100}.webm`
+
+		ytDlpProcess = spawn('yt-dlp', ['-o', outputPath, videoUrl])
+
+		ytDlpProcess.stdout.on('data', data => console.log(`📥 Загрузка: ${data}`))
+		ytDlpProcess.stderr.on('data', data => console.error(`⚠️ Ошибка: ${data}`))
+
+		await new Promise<void>((resolve, reject) => {
+			ytDlpProcess.on('close', code => {
+				if (code === 0) {
+					console.log(`✅ Видео сохранено в ${outputPath}`)
+					console.log('Можно отправлять новую ссылку ^_^')
+					resolve()
+				} else reject(`❌ yt-dlp завершился с кодом ${code}`)
+			})
+		})
+
+		return outputPath
+	}
 }
 
 export async function getYouTubeVideoMetadata(
